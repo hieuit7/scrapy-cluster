@@ -2,7 +2,7 @@ from builtins import object
 # -*- coding: utf-8 -*-
 
 # Define your item pipelines here
-
+import pafy
 import ujson
 import datetime as dt
 import sys
@@ -219,3 +219,18 @@ class KafkaPipeline(object):
         self.logger.info("Closing Kafka Pipeline")
         self.producer.flush()
         self.producer.close(timeout=10)
+
+
+class YoutubePipeline:
+    def process_item(self, item, spider):
+        if 'value' in item and 'gridVideoRenderer' in item['value'] and 'video_id' in item['value']['gridVideoRenderer']:
+            v = pafy.new(item['value']['gridVideoRenderer']['video_id'])
+            audio = v.getbestaudio()
+            video = v.getbestvideo()
+            image_urls = [audio.url, video.url]
+            
+            item['image_urls'] = image_urls
+            item['value']['gridVideoRenderer']['video_url'] = video.url
+            item['value']['gridVideoRenderer']['audio_url'] = audio.url
+            item['video_infor'] = v.__dict__
+        return item

@@ -7,7 +7,7 @@ import time
 import sys
 from scrapy.utils.response import response_status_message
 
-from scrapy.xlib.tx import ResponseFailed
+from twisted.web.client import ResponseFailed
 from twisted.internet import defer
 from twisted.internet.error import TimeoutError, DNSLookupError, \
         ConnectionRefusedError, ConnectionDone, ConnectError, \
@@ -85,6 +85,7 @@ class LogRetryMiddleware(object):
     def from_crawler(cls, crawler):
         # hack to update passed in settings
         crawler.settings.frozen = False
+        print(crawler.settings)
         crawler.settings.set('SPIDER_NAME', crawler.spider.name)
         return cls.from_settings(crawler.settings)
 

@@ -270,6 +270,7 @@ class KafkaMonitor(object):
     def _process_messages(self):
         try:
             for message in self.consumer:
+                print(message)
                 if message is None:
                     self.logger.debug("no message")
                     break
@@ -283,6 +284,7 @@ class KafkaMonitor(object):
                         obj = self.plugins_dict[key]
                         instance = obj['instance']
                         schema = obj['schema']
+                        print(instance.__class__.__name__)
                         try:
                             self.validator(schema).validate(the_dict)
                             found_plugin = True

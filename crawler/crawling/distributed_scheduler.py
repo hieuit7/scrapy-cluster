@@ -6,7 +6,7 @@ from past.builtins import basestring
 from six import string_types
 from builtins import object
 from scrapy.http import Request
-from scrapy.conf import settings
+from scrapy.settings import Settings as settings 
 from scrapy.utils.python import to_unicode
 from scrapy.utils.reqser import request_to_dict, request_from_dict
 
@@ -22,6 +22,7 @@ import uuid
 import socket
 import re
 import ujson
+import json
 
 from crawling.redis_dupefilter import RFPDupeFilter
 from crawling.redis_global_page_per_domain_filter import RFGlobalPagePerDomainFilter
@@ -73,10 +74,11 @@ class DistributedScheduler(object):
     def __init__(self, server, persist, update_int, timeout, retries, logger,
                  hits, window, mod, ip_refresh, add_type, add_ip, ip_regex,
                  backlog_blacklist, queue_timeout, global_page_per_domain_limit,
-                 global_page_per_domain_limit_timeout, domain_max_page_timeout):
+                 global_page_per_domain_limit_timeout, domain_max_page_timeout, settings=None):
         '''
         Initialize the scheduler
         '''
+        
         self.redis_conn = server
         self.persist = persist
         self.queue_dict = {}
@@ -90,7 +92,9 @@ class DistributedScheduler(object):
         self.add_ip = add_ip
         self.item_retries = retries
         self.logger = logger
+        print("OKL")
         self.ip_regex = re.compile(ip_regex)
+        print("OKL")
         self.backlog_blacklist = backlog_blacklist
         self.queue_timeout = queue_timeout
         self.global_page_per_domain_limit = global_page_per_domain_limit
@@ -98,20 +102,24 @@ class DistributedScheduler(object):
         self.domain_max_page_timeout = domain_max_page_timeout
 
         # set up tldextract
+        print("OKL")
         self.extract = tldextract.TLDExtract()
-
+        print("OKL")
         self.update_ipaddress()
-
+        self.settings = settings
         # if we need better uuid's mod this line
         self.my_uuid = str(uuid.uuid4()).split('-')[4]
 
     def setup_zookeeper(self):
-        self.assign_path = settings.get('ZOOKEEPER_ASSIGN_PATH', "")
-        self.my_id = settings.get('ZOOKEEPER_ID', 'all')
+        print(self.settings.get('ZOOKEEPER_ASSIGN_PATH', ""))
+        self.assign_path = self.settings.get('ZOOKEEPER_ASSIGN_PATH', "")
+        print("làla")
+        self.my_id = self.settings.get('ZOOKEEPER_ID', 'all')
         self.logger.debug("Trying to establish Zookeeper connection")
         try:
+            print("làla")
             self.zoo_watcher = ZookeeperWatcher(
-                                hosts=settings.get('ZOOKEEPER_HOSTS'),
+                                hosts=self.settings.get('ZOOKEEPER_HOSTS'),
                                 filepath=self.assign_path + self.my_id,
                                 config_handler=self.change_config,
                                 error_handler=self.error_config,
@@ -289,23 +297,26 @@ class DistributedScheduler(object):
         # assign local ip in case of exception
         self.old_ip = self.my_ip
         self.my_ip = '127.0.0.1'
-        try:
-            obj = urllib.request.urlopen(settings.get('PUBLIC_IP_URL',
-                                  'http://ip.42.pl/raw'))
-            results = self.ip_regex.findall(obj.read().decode('utf-8'))
-            if len(results) > 0:
-                self.my_ip = results[0]
-            else:
-                raise IOError("Could not get valid IP Address")
-            obj.close()
-            self.logger.debug("Current public ip: {ip}".format(ip=self.my_ip))
-        except IOError:
-            self.logger.error("Could not reach out to get public ip")
-            pass
+        print("sâsas")
+        # print("OK1")
+        # try:
+        #     obj = urllib.request.urlopen(self.settings.get('PUBLIC_IP_URL',
+        #                           'http://ip.42.pl/raw'))
+        #     results = self.ip_regex.findall(obj.read().decode('utf-8'))
+        #     if len(results) > 0:
+        #         self.my_ip = results[0]
+        #         print("OKL")
+        #     else:
+        #         raise IOError("Could not get valid IP Address")
+        #     obj.close()
+        #     self.logger.debug("Current public ip: {ip}".format(ip=self.my_ip))
+        # except IOError:
+        #     self.logger.error("Could not reach out to get public ip")
+        #     pass
 
-        if self.old_ip != self.my_ip:
-            self.logger.info("Changed Public IP: {old} -> {new}".format(
-                             old=self.old_ip, new=self.my_ip))
+        # if self.old_ip != self.my_ip:
+        #     self.logger.info("Changed Public IP: {old} -> {new}".format(
+        #                      old=self.old_ip, new=self.my_ip))
 
     def report_self(self):
         '''
@@ -351,7 +362,7 @@ class DistributedScheduler(object):
         my_bytes = settings.get('SC_LOG_MAX_BYTES', '10MB')
         my_file = settings.get('SC_LOG_FILE', 'main.log')
         my_backups = settings.get('SC_LOG_BACKUPS', 5)
-
+        print(settings.get('REDIS_HOST'))
         logger = LogFactory.get_instance(json=my_json,
                                          name=my_name,
                                          stdout=my_output,
@@ -364,21 +375,26 @@ class DistributedScheduler(object):
         global_page_per_domain_limit = settings.get('GLOBAL_PAGE_PER_DOMAIN_LIMIT', None)
         global_page_per_domain_limit_timeout = settings.get('GLOBAL_PAGE_PER_DOMAIN_LIMIT_TIMEOUT', 600)
         domain_max_page_timeout = settings.get('DOMAIN_MAX_PAGE_TIMEOUT', 600)
-
+        print(cls)
         return cls(server, persist, up_int, timeout, retries, logger, hits,
                    window, mod, ip_refresh, add_type, add_ip, ip_regex,
                    backlog_blacklist, queue_timeout, global_page_per_domain_limit,
-                   global_page_per_domain_limit_timeout, domain_max_page_timeout)
+                   global_page_per_domain_limit_timeout, domain_max_page_timeout, settings=settings)
 
     @classmethod
     def from_crawler(cls, crawler):
+        print("from settings")
         return cls.from_settings(crawler.settings)
 
     def open(self, spider):
         self.spider = spider
         self.spider.set_logger(self.logger)
+        print('12312')
         self.create_queues()
+        print('1231211111')
+        
         self.setup_zookeeper()
+        print('sadsas')
         self.dupefilter = RFPDupeFilter(self.redis_conn,
                                         self.spider.name + ':dupefilter',
                                         self.rfp_timeout)
@@ -426,7 +442,7 @@ class DistributedScheduler(object):
 
         # # # # # # # # # # # # # # # # # # Page Limit Filters # # # # # # # # # # # # # # #
         # Max page filter per individual domain
-        if req_dict['meta']['domain_max_pages'] and self.domain_max_page_filter.request_page_limit_reached(
+        if 'meta' in req_dict and 'domain_max_pages' in req_dict['meta'] and req_dict['meta']['domain_max_pages'] and self.domain_max_page_filter.request_page_limit_reached(
                 request=request,
                 spider=self.spider):
             self.logger.debug("Request {0} reached domain's page limit of {1}".format(
@@ -445,7 +461,7 @@ class DistributedScheduler(object):
 
 
         # # # # # # # # # # # # # # # # # # Blacklist Filter # # # # # # # # # # # # # # #
-        if not self.is_blacklisted(req_dict['meta']['appid'],
+        if 'meta' in req_dict and 'appid' in req_dict['meta'] and not self.is_blacklisted(req_dict['meta']['appid'],
                                    req_dict['meta']['crawlid']):
             # grab the tld of the request
             ex_res = self.extract(req_dict['url'])
@@ -484,8 +500,8 @@ class DistributedScheduler(object):
                                           id=req_dict['meta']['crawlid']))
         else:
             self.logger.debug("Crawlid: '{id}' Appid: '{appid}' blacklisted"
-                              .format(appid=req_dict['meta']['appid'],
-                                      id=req_dict['meta']['crawlid']))
+                              .format(appid=req_dict['meta']['appid'] if 'meta' in req_dict and 'appid' in req_dict['meta'] else "",
+                                      id=req_dict['meta']['crawlid'] if 'meta' in req_dict  and 'crawlid' in req_dict['meta'] else ""))
 
     def find_item(self):
         '''
@@ -496,12 +512,14 @@ class DistributedScheduler(object):
 
         while count <= self.item_retries:
             for key in self.queue_keys:
+                print(f'{key}')
                 # skip if the whole domain has been blacklisted in zookeeper
                 if key.split(':')[1] in self.black_domains:
+                    self.logger.info("key in black domain")
                     continue
                 # the throttled queue only returns an item if it is allowed
                 item = self.queue_dict[key][0].pop()
-
+                self.logger.info(f"Have item: {item}{self.queue_dict}")
                 if item:
                     # update timeout and return
                     self.queue_dict[key][1] = time.time()
@@ -517,6 +535,7 @@ class DistributedScheduler(object):
         different queues
         '''
         t = time.time()
+        self.logger.info("have next request")
         # update the redis queues every so often
         if t - self.update_time > self.update_interval:
             self.update_time = t
@@ -597,3 +616,232 @@ class DistributedScheduler(object):
         If this returns True scrapy sometimes hangs.
         '''
         return False
+class YoutubeScheduler(DistributedScheduler):
+    
+    def find_item(self):
+        '''
+        Finds an item from the throttled queues
+        '''
+        random.shuffle(self.queue_keys)
+        count = 0
+        self.logger.info("Bug")
+        while count <= self.item_retries:
+            for key in self.queue_keys:
+                # skip if the whole domain has been blacklisted in zookeeper
+                if key.split(':')[1] in self.black_domains:
+                    self.logger.info("key in black domain")
+                    continue
+                # the throttled queue only returns an item if it is allowed
+                self.logger.info(f"Item key {self.queue_dict[key][0]}")
+                item = self.queue_dict[key][0].pop()
+                self.logger.info(f"Have item: {item} - {self.queue_dict[key][0]}")
+                if item:
+                    # update timeout and return
+                    self.queue_dict[key][1] = time.time()
+                    return item
+
+            count = count + 1
+
+        return None
+
+    def next_request(self):
+        '''
+        Logic to handle getting a new url request, from a bunch of
+        different queues
+        '''
+        t = time.time()
+        self.logger.debug(u"Find item {url}" \
+                    .format(url=123))
+        # update the redis queues every so often
+        if t - self.update_time > self.update_interval:
+            self.update_time = t
+            self.create_queues()
+            self.expire_queues()
+
+        # update the ip address every so often
+        if t - self.update_ip_time > self.ip_update_interval:
+            self.update_ip_time = t
+            self.update_ipaddress()
+            self.report_self()
+
+        item = self.find_item()
+        if item:
+            self.logger.debug(u"Found Profile youtube to crawl {url}" \
+                    .format(url=item['url']))
+            if 'meta' in item:
+                # item is a serialized request
+                req = request_from_dict(item, self.spider)
+            else:
+                # item is a feed from outside, parse it manually
+                req = self.request_from_feed(item)
+                req.meta['channel_id'] = item['url']
+
+            # extra check to add items to request
+            if 'useragent' in req.meta and req.meta['useragent'] is not None:
+                req.headers['User-Agent'] = req.meta['useragent']
+            if 'cookie' in req.meta and req.meta['cookie'] is not None:
+                if isinstance(req.meta['cookie'], dict):
+                    req.cookies = req.meta['cookie']
+                elif isinstance(req.meta['cookie'], string_types):
+                    req.cookies = self.parse_cookie(req.meta['cookie'])
+
+            return req
+
+        return None
+    def request_from_feed(self, item):
+        try:
+            self.logger.info(f"Start crawling from feed")
+            api = "https://www.youtube.com/youtubei/v1/browse?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"
+            payload = self._payload(item['url'])
+            headers = self._headers()
+            req = Request(url=api, callback=self.spider.parse, body=payload, headers=headers, method="POST")
+        except ValueError:
+            # need absolute url
+            # need better url validation here
+            req = None
+
+        # defaults not in schema
+        if 'curdepth' not in item:
+            item['curdepth'] = 0
+        if "retry_times" not in item:
+            item['retry_times'] = 0
+
+        for key in list(item.keys()):
+            req.meta[key] = item[key]
+
+        # extra check to add items to request
+        if 'cookie' in item and item['cookie'] is not None:
+            if isinstance(item['cookie'], dict):
+                req.cookies = item['cookie']
+            elif isinstance(item['cookie'], string_types):
+                req.cookies = self.parse_cookie(item['cookie'])
+        return req
+    def _payload(self, channel_id):
+        payload = json.dumps({
+                "context": {
+                    "client": {
+                        "hl": "en",
+                        "gl": "VN",
+                        "remoteHost": "2405:4800:5287:7e:6cce:7d5:43f2:c8b1",
+                        "deviceMake": "",
+                        "deviceModel": "",
+                        "visitorData": "CgtESkM4UHk5a3JuQSjGp_mLBg%3D%3D",
+                        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36,gzip(gfe)",
+                        "clientName": "WEB",
+                        "clientVersion": "2.20211029.00.00",
+                        "osName": "Windows",
+                        "osVersion": "10.0",
+                        "originalUrl": f"https://www.youtube.com/channel/{channel_id}/videos",
+                        "platform": "DESKTOP",
+                        "clientFormFactor": "UNKNOWN_FORM_FACTOR",
+                        "configInfo": {
+                            "appInstallData": "CMan-YsGEJLVrQUQ39atBRDMv_0SELfLrQUQsNStBRDku_0SEPTNrQUQ2L6tBRCR-PwS"
+                        },
+                        "browserName": "Chrome",
+                        "browserVersion": "95.0.4638.69",
+                        "screenWidthPoints": 1333,
+                        "screenHeightPoints": 904,
+                        "screenPixelDensity": 1,
+                        "screenDensityFloat": 1,
+                        "utcOffsetMinutes": 420,
+                        "userInterfaceTheme": "USER_INTERFACE_THEME_LIGHT",
+                        "mainAppWebInfo": {
+                            "graftUrl": f"/channel/{channel_id}/videos",
+                            "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
+                            "isWebNativeShareAvailable": True
+                        },
+                        "timeZone": "Asia/Saigon"
+                    },
+                    "user": {
+                        "lockedSafetyMode": False
+                    },
+                    "request": {
+                        "useSsl": True,
+                        "internalExperimentFlags": [],
+                        "consistencyTokenJars": []
+                    },
+                    "clickTracking": {
+                        "clickTrackingParams": "CCEQ8JMBGAYiEwjJnevKo_TzAhXsRfUFHUp2DSI="
+                    },
+                    "adSignalsInfo": {
+                        "params": [
+                            {
+                                "key": "dt",
+                                "value": "1635668933852"
+                            },
+                            {
+                                "key": "flash",
+                                "value": "0"
+                            },
+                            {
+                                "key": "frm",
+                                "value": "0"
+                            },
+                            {
+                                "key": "u_tz",
+                                "value": "420"
+                            },
+                            {
+                                "key": "u_his",
+                                "value": "17"
+                            },
+                            {
+                                "key": "u_h",
+                                "value": "1080"
+                            },
+                            {
+                                "key": "u_w",
+                                "value": "1920"
+                            },
+                            {
+                                "key": "u_ah",
+                                "value": "1032"
+                            },
+                            {
+                                "key": "u_aw",
+                                "value": "1920"
+                            },
+                            {
+                                "key": "u_cd",
+                                "value": "24"
+                            },
+                            {
+                                "key": "bc",
+                                "value": "31"
+                            },
+                            {
+                                "key": "bih",
+                                "value": "904"
+                            },
+                            {
+                                "key": "biw",
+                                "value": "1317"
+                            },
+                            {
+                                "key": "brdim",
+                                "value": "0,0,0,0,1920,0,1920,1032,1333,904"
+                            },
+                            {
+                                "key": "vis",
+                                "value": "1"
+                            },
+                            {
+                                "key": "wgl",
+                                "value": "true"
+                            },
+                            {
+                                "key": "ca_type",
+                                "value": "image"
+                            }
+                        ]
+                    }
+                },
+                "browseId": f"{channel_id}",
+                "params": "EgZ2aWRlb3M%3D"
+            })
+        return payload
+    def _headers(self):
+        headers = {
+                'Content-Type': 'application/json'
+            }
+        return headers

@@ -104,7 +104,7 @@ SC_LOG_MAX_BYTES = 10 * 1024 * 1024
 SC_LOG_BACKUPS = 5
 SC_LOG_STDOUT = True
 SC_LOG_JSON = False
-SC_LOG_LEVEL = 'INFO'
+SC_LOG_LEVEL = 'DEBUG'
 
 
 # stats setup
@@ -137,6 +137,7 @@ NEWSPIDER_MODULE = 'crawling.spiders'
 
 # Enables scheduling storing requests queue in redis.
 SCHEDULER = "crawling.distributed_scheduler.DistributedScheduler"
+SCHEDULER = "crawling.distributed_scheduler.YoutubeScheduler"
 
 
 

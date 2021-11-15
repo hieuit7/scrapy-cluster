@@ -3,7 +3,7 @@ import scrapy
 
 from scrapy.http import Request
 from crawling.spiders.lxmlhtml import CustomLxmlLinkExtractor as LinkExtractor
-from scrapy.conf import settings
+
 
 from crawling.items import RawResponseItem
 from crawling.spiders.redis_spider import RedisSpider

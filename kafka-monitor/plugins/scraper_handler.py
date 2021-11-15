@@ -46,7 +46,7 @@ class ScraperHandler(BaseHandler):
             suf=ex_res.suffix)
 
         val = ujson.dumps(dict)
-
+        
         # shortcut to shove stuff into the priority queue
         self.redis_conn.zadd(key, {val: -dict['priority']})
 
@@ -61,4 +61,5 @@ class ScraperHandler(BaseHandler):
         # log success
         dict['parsed'] = True
         dict['valid'] = True
+        self.logger.info(f'Value: {key} {val}')
         self.logger.info('Added crawl to Redis', extra=dict)

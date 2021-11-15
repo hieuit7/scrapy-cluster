@@ -21,10 +21,9 @@ services:
       - zookeeper
     restart: always
   crawler:
-    image: istresearch/scrapy-cluster:crawler-ci-dev
     build:
       context: .
-      dockerfile: docker/crawler/Dockerfile.py3
+      dockerfile: docker/youtube/Dockerfile.py3
     depends_on:
       - kafka
       - redis
@@ -65,3 +64,13 @@ services:
     depends_on:
       - zookeeper
     restart: always
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    restart: "no"
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: "kafka:9092"
+      JVM_OPTS: "-Xms256M -Xmx256M -Xss128M -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
+    depends_on:
+      - "kafka"

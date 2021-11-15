@@ -21,6 +21,7 @@ class InfoMonitor(KafkaBaseMonitor):
         @param value: The value associated with the key
         '''
         # the master dict to return
+        print(key)
         master = {}
         master['uuid'] = value
         master['total_pending'] = 0

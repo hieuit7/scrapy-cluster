@@ -109,7 +109,7 @@ SC_LOG_MAX_BYTES = 10 * 1024 * 1024
 SC_LOG_BACKUPS = 5
 SC_LOG_STDOUT = str2bool(os.getenv('SC_LOG_STDOUT', True))
 SC_LOG_JSON = str2bool(os.getenv('SC_LOG_JSON', False))
-SC_LOG_LEVEL = os.getenv('SC_LOG_LEVEL', 'INFO')
+SC_LOG_LEVEL = os.getenv('SC_LOG_LEVEL', 'DEBUG')
 
 
 # stats setup
@@ -143,7 +143,7 @@ SPIDER_MODULES = ['crawling.spiders']
 NEWSPIDER_MODULE = 'crawling.spiders'
 
 # Enables scheduling storing requests queue in redis.
-SCHEDULER = "crawling.distributed_scheduler.DistributedScheduler"
+SCHEDULER = "crawling.distributed_scheduler.YoutubeScheduler"
 
 
 
@@ -173,14 +173,14 @@ DOWNLOADER_MIDDLEWARES = {
 }
 
 # Disable the built in logging in production
-LOG_ENABLED = str2bool(os.getenv('LOG_ENABLED', False))
+LOG_ENABLED = str2bool(os.getenv('LOG_ENABLED', True))
 
 # Allow all return codes
 HTTPERROR_ALLOW_ALL = True
 
-RETRY_TIMES = 30
+RETRY_TIMES = 3
 
-DOWNLOAD_TIMEOUT = 100
+DOWNLOAD_TIMEOUT = 10
 
 # Avoid in-memory DNS cache. See Advanced topics of docs for info
 DNSCACHE_ENABLED = True

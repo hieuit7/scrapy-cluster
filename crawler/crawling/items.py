@@ -20,3 +20,5 @@ class RawResponseItem(Item):
     success = Field()
     exception = Field()
     encoding = Field()
+    index = Field()
+    value = Field()
